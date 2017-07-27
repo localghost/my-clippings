@@ -8,6 +8,12 @@ import (
 var _ = API("my-clippings", func() {
 	Description("This API exposes an image resource that allows uploading and downloading images")
 	BasePath("/api")
+	Origin("*", func() {
+		Methods("GET", "POST", "PUT", "PATCH", "DELETE")
+		Headers("Accept", "Content-Type")
+		Expose("Content-Type", "Origin")
+		MaxAge(600)
+	})
 })
 
 var _ = Resource("clippings", func() {
@@ -26,14 +32,9 @@ var ClippingsMedia = MediaType("application/vnd.upload.clipping", func() {
 	Description("My Clippings metadata")
 	TypeName("ClippingsMedia")
 	Attributes(func() {
-		Attribute("id", Integer, "Image ID")
-		Attribute("filename", String, "Image filename")
-		Attribute("uploaded_at", DateTime, "Upload timestamp")
-		Required("id", "filename", "uploaded_at")
+		Attribute("id", String, "File ID")
 	})
 	View("default", func() {
 		Attribute("id")
-		Attribute("filename")
-		Attribute("uploaded_at")
 	})
 })

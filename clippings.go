@@ -1,11 +1,12 @@
 package main
 
 import (
-	"bytes"
+	"encoding/json"
+	"fmt"
 	"github.com/goadesign/goa"
 	"github.com/localghost/my-clippings/app"
-	"io"
 	"log"
+	"os"
 )
 
 // ClippingsController implements the clippings resource.
@@ -28,12 +29,28 @@ func (c *ClippingsController) Upload(ctx *app.UploadClippingsContext) error {
 	if err != nil {
 		log.Printf("error: %s", err)
 	} else {
-		log.Println(ctx.MultipartForm.Value)
-		file, _ := ctx.MultipartForm.File["hela"][0].Open()
-		defer file.Close()
-		buffer := &bytes.Buffer{}
-		io.Copy(buffer, file)
-		log.Println(buffer)
+		input, _ := ctx.MultipartForm.File["hela"][0].Open()
+		defer input.Close()
+
+		fmt.Println("INPUT OPENED")
+
+		clippings, err := New().Parse(input)
+		if err != nil {
+			fmt.Println(err)
+			return ctx.OK(&app.ClippingsMedia{})
+		}
+		fmt.Println("PARSED")
+
+		output, _ := os.Create(fmt.Sprintf("/tmp/my-clippings/%s.json", ctx.MultipartForm.File["hela"][0].Filename))
+		defer output.Close()
+		err = json.NewEncoder(output).Encode(clippings)
+		if err != nil {
+			fmt.Println(err)
+			return ctx.OK(&app.ClippingsMedia{})
+		}
+
+		filename := fmt.Sprintf("%s.json", ctx.MultipartForm.File["hela"][0].Filename)
+		return ctx.OK(&app.ClippingsMedia{ID: &filename})
 	}
 	//buffer := &bytes.Buffer{}
 	//io.Copy(buffer, ctx.Body)
@@ -41,6 +58,5 @@ func (c *ClippingsController) Upload(ctx *app.UploadClippingsContext) error {
 	//log.Println(buffer)
 
 	// ClippingsController_Upload: end_implement
-	res := &app.ClippingsMedia{}
-	return ctx.OK(res)
+	return ctx.OK(&app.ClippingsMedia{})
 }
